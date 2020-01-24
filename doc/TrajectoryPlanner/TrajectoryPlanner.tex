@@ -1,0 +1,120 @@
+\documentclass[10pt]{article}
+\usepackage{pgf,tikz,pgfplots}
+\pgfplotsset{compat=1.15}
+\usepackage{mathrsfs}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usetikzlibrary{arrows}
+\pagestyle{empty}
+
+\definecolor{pblue}{rgb}{0.13,0.13,1}
+\definecolor{pgreen}{rgb}{0,0.5,0}
+\definecolor{pred}{rgb}{0.9,0,0}
+\definecolor{pgrey}{rgb}{0.46,0.45,0.48}
+
+\usepackage{listings}
+\lstset{language=Java,
+  showspaces=false,
+  showtabs=false,
+  breaklines=true,
+  showstringspaces=false,
+  breakatwhitespace=true,
+  commentstyle=\color{pgreen},
+  keywordstyle=\color{pblue},
+  stringstyle=\color{pred},
+  basicstyle=\ttfamily,
+  moredelim=[il][\textcolor{pgrey}]{\$\$},
+  moredelim=[is][\textcolor{pgrey}]{\%\%}{\%\%}
+}
+
+\begin{document}
+\section{Trajectory Planner}
+The result of $TrajectoryPlanner.estimateLaunchPoint()$ is used to construct $Shot$s 
+\begin{equation}
+Shot(P_{Reference},P_{Release}-P_{Reference},t_1, t_2),
+\end{equation}
+where $t_1$ is the time when the shot is performed and $t_2$ is the time when the special ability of the bird is triggered, that are given to the $SimulationManager$ to simulate them and estimate their score.
+\subsection{Converting The Trajectory Into Our Simulation}
+\definecolor{ttqqqq}{rgb}{0.,0.,0.}
+\begin{tikzpicture}[line join=round,>=triangle 45,x=3.0cm,y=3.0cm]
+\clip(-0.4752632071044349,-0.9866651667191532) rectangle (3.8571546595573487,1.6380169641490958);
+% draw angle
+\draw [shift={(0.,0.)},line width=.5pt,color=ttqqqq] (0,0) -- (0.:0.3) arc (0.:59.07450374143305:0.3) -- cycle;
+% draw sling
+\draw [line width=.5pt,color=black] (-0.08,0.1) -- (0.08,0.1) -- (0.08,-0.48) -- (-0.08,-0.48) -- cycle;
+% draw parabola
+\draw [samples=50,line width=.5pt,dash pattern=on 3pt off 2pt,domain=0:2.777686649004158)] plot (\x,{-0.49*(\x)^2 + 1.67*\x});
+% draw tangent
+\draw [line width=0.5pt,dotted,domain=-0.4752632071044349:3.8571546595573487] plot(\x,{(-0.-692.2483976556116*\x)/-414.72061511812035});
+% dx line
+\draw [line width=.5pt] (0.,0.)-- (2.777686649004158,0.);
+% dy line
+\draw [line width=.5pt] (2.777686649004158,0.)-- (2.777686649004158,0.8754800901485799);
+\begin{scriptsize}
+\draw [fill=ttqqqq] (2.77,0.87) circle (1.5pt);
+\draw[color=ttqqqq] (3.,0.92) node {$P_{Target}$};
+\draw [fill=ttqqqq] (0.,0.) circle (1.5pt);
+\draw[color=ttqqqq] (0.35,-0.1) node {$P_{Reference}$};
+\draw[color=ttqqqq] (0.15,0.10) node {$\theta$};
+\draw[color=black] (1.45,-0.0625) node {$\Delta x$};
+\draw[color=black] (2.85,0.46) node {$\Delta y$};
+\draw[color=ttqqqq] (-0.0,-0.55) node {$w$};
+\draw[color=ttqqqq] (-0.15,-0.16) node {$h$};
+\end{scriptsize}
+\end{tikzpicture}
+The resulting parabola of the trajectory planner can be seen in the function $TrajectoryPlanner.setTrajectory()$
+\begin{lstlisting}[language=Java]
+
+    public void setTrajectory(Rectangle sling, Point releasePoint) {
+        if (_trajSet && _ref != null && _ref.equals(getReferencePoint(sling)) && _release != null
+                && _release.equals(releasePoint))
+            return;
+        _scale = sling.height + sling.width;
+        _ref = getReferencePoint(sling);
+        _release = new Point(releasePoint.x, releasePoint.y);
+        _theta = Math.atan2(_release.y - _ref.y, _ref.x - _release.x);
+        _theta = launchToActual(_theta);
+        _velocity = getVelocity(_theta);
+        _ux = _velocity * Math.cos(_theta);
+        _uy = _velocity * Math.sin(_theta);
+        _a = -0.5 / (_ux * _ux);
+        _b = _uy / _ux;
+        _trajectory = new ArrayList<Point>();
+        for (int x = 0; x < X_MAX; x++) {
+            double xn = x / _scale;
+            int y = _ref.y - (int) ((_a * xn * xn + _b * xn) * _scale);
+            _trajectory.add(new Point(x + _ref.x, y));
+        }
+        _trajSet = true;
+    }
+\end{lstlisting}
+In short it is given by the equation:
+\begin{equation}
+y_{px}(x)=\frac{1}{2*u_x^2*(h+w)}*x_{px}^2-\frac{u_y}{u_x}*x_{px},
+\end{equation}
+where $\boldsymbol{\vec{u}}$ is the velocity in the koordinate system of the trajectory planner. The units of the simulation are meters and not pixels thus the parabola needs to be converted with $y_m=\frac{y_{px}}{ppm}$ and $x_m=\frac{x_{px}}{ppm}$, where $ppm$ are the pixels per meter, and since the y-axis of the vision is upside down we need the negetive value of $y$:
+\begin{align}
+y_{m}(x)&=\frac{-y_{px}(x)}{ppm}\\
+y_{m}(x)&=\frac{-\frac{1}{2*u_x^2*(h+w)}*x_{px}^2+\frac{u_y}{u_x}*x_{px}}{ppm}\\
+y_{m}(x)&=-\frac{1}{2*u_x^2*(h+w)}*\frac{x_{px}^2}{ppm}+\frac{u_y}{u_x}*\frac{x_{px}}{ppm}\\
+y_{m}(x)&=-\frac{ppm}{2*u_x^2*(h+w)}*x_{m}^2+\frac{u_y}{u_x}*x_{m}
+\end{align}
+Any shot in the simulation can be expressed by the following equation:
+\begin{equation}
+y_{m}(x)=-\frac{g}{2*v_x^2}*x_{m}^2+\frac{v_y}{v_x}*x_{m}.
+\end{equation}
+To perform the $Shot$ given to the simulation the parameters $g$ and $v$ need to be calculated. From our earlier measurements we have concluded, that $g=9.81\frac{m}{s^2}$ given a slingshot height of $5 m$. This leaves only $v$ to be calculated. From the equations (6) and (7) follows that
+\begin{align}
+-\frac{g}{2*v_x^2}&=-\frac{ppm}{2*u_x^2*(h+w)}\\
+\frac{v_y}{v_x}&=\frac{u_y}{u_x}
+\end{align}
+which can be solved for $v$
+\begin{align}
+v_x^2&=\frac{g*(h+w)}{ppm}*u_x^2\\
+&\Updownarrow\text{since $v$ and $u$ show in the same direction}\\
+v_x&=\sqrt{\frac{g*(h+w)}{ppm}}*u_x\\
+v_y&=\frac{u_y}{u_x}*v_x\\
+v_y&=\sqrt{\frac{g*(h+w)}{ppm}}*u_y\\
+\boldsymbol{\vec{v}}&=\sqrt{\frac{g*(h+w)}{ppm}}*\boldsymbol{\vec{u}}
+\end{align}
+\end{document}

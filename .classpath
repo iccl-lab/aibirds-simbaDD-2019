@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="ABServer.jar"/>
+	<classpathentry kind="lib" path="external/commons-codec-1.7.jar"/>
+	<classpathentry kind="lib" path="external/Jama-1.0.2.jar"/>
+	<classpathentry kind="lib" path="external/json-simple-1.1.1.jar"/>
+	<classpathentry kind="lib" path="external/WebSocket.jar"/>
+	<classpathentry kind="lib" path="external/guava-14.0.1.jar"/>
+	<classpathentry kind="lib" path="external/jbox2d-library-2.3.1-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="external/jbox2d-serialization-2.3.1-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="external/jbox2d-testbed-javafx-2.3.1-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="external/jbox2d-testbed-2.3.1-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="external/jbox2d-testbed-jogl-2.3.1-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="external/log4j-1.2.14.jar"/>
+	<classpathentry kind="lib" path="external/slf4j-api-1.7.5.jar"/>
+	<classpathentry kind="lib" path="external/slf4j-log4j12-1.7.5.jar"/>
+	<classpathentry kind="lib" path="external/gnu-getopt-1.0.6.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
